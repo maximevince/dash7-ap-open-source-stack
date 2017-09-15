@@ -83,6 +83,7 @@
 #define CC1101_SPI_LOCATION 0
 #define CC1101_SPI_PIN_CS   E13
 #define CC1101_GDO0_PIN     C1
+#define CC1101_GDO2_PIN     C2
 
 #endif
 
