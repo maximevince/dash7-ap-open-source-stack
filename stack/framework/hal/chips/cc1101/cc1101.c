@@ -39,6 +39,7 @@
 
 #include "log.h"
 #include "hwradio.h"
+#include "hwgpio.h"
 #include "hwsystem.h"
 #include "hwdebug.h"
 
