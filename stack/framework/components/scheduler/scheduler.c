@@ -364,3 +364,26 @@ __LINK_C void scheduler_run()
 	}
 
 }
+
+__LINK_C void dash7_tick()
+{
+    while(NG(current_priority) < NUM_PRIORITIES)
+    {
+        check_structs_are_valid();
+        for(uint8_t id = pop_task((NG(current_priority))); id != NO_TASK; id = pop_task(NG(current_priority)))
+        {
+            check_structs_are_valid();
+            NG(m_info)[id].task();
+        }
+        //this needs to be done atomically since otherwise we risk decrementing the current priority
+        //while a higher priority task is waiting in the queue
+        start_atomic();
+        if (!tasks_waiting(NG(current_priority)))
+            NG(current_priority)++;
+#ifndef NDEBUG
+        for(int i = 0; i < NG(current_priority); i++)
+            assert(!tasks_waiting(i));
+#endif
+        end_atomic();
+    }
+}

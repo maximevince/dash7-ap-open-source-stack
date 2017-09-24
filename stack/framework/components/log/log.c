@@ -51,8 +51,9 @@ __LINK_C void log_print_string(char* format, ...)
 {
     va_list args;
     va_start(args, format);
-    printf("\n\r[%03d] ", NG(counter)++);
+    printf("[%03d] ", NG(counter)++);
     vprintf(format, args);
+    printf("\r\n");
     va_end(args);
 }
 
@@ -60,18 +61,20 @@ __LINK_C void log_print_stack_string(log_stack_layer_t type, char* format, ...)
 {
     va_list args;
     va_start(args, format);
-    printf("\n\r[%03d] ", NG(counter)++);
+    printf("[%03d] ", NG(counter)++);
     vprintf(format, args);
+    printf("\r\n");
     va_end(args);
 }
 
 __LINK_C void log_print_data(uint8_t* message, uint32_t length)
 {
-    printf("\n\r[%03d]", NG(counter)++);
+    printf("[%03d]", NG(counter)++);
     for( uint32_t i=0 ; i<length ; i++ )
     {
         printf(" %02X", message[i]);
     }
+    printf("\r\n");
 }
 
 

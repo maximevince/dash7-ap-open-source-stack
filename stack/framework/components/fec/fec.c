@@ -28,6 +28,7 @@
 #include <string.h>
 
 #include "fec.h"
+#include "log.h"
 
 #define INITIAL_FECSTATE 0x00
 #define TRELLIS_TERMINATOR 0x0B
