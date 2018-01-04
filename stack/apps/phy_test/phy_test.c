@@ -120,7 +120,7 @@ void transmit_packet()
     memcpy(tx_packet->data + tx_packet->length + 1 - 2, &crc, 2);
 
     if(counter < 100)
-        hw_radio_send_packet(tx_packet, &packet_transmitted);
+        hw_radio_send_packet(tx_packet, &packet_transmitted, 0, NULL);
 	
     counter++;
 }
@@ -163,7 +163,7 @@ void packet_received(hw_radio_packet_t* packet)
 
 static void packet_transmitted(hw_radio_packet_t* packet)
 {
-#if HW_NUM_LEDS > 0
+#if PLATFORM_NUM_LEDS > 0
     led_toggle(0);
 #endif
     DPRINT("%d tx ok\n", counter);

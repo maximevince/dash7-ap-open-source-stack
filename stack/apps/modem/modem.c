@@ -23,7 +23,6 @@
 #include "hwleds.h"
 #include "hwsystem.h"
 #include "assert.h"
-#include "platform.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +53,7 @@ void bootstrap()
                 .channel_index_start = 0,
                 .channel_index_end = 0,
                 .eirp = 10,
-                .cca = -86,
+                .cca = 86,
                 .duty = 0,
             }
         }

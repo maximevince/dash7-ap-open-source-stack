@@ -49,6 +49,7 @@
 
 #define D7A_FILE_ACCESS_PROFILE_ID 0x20 // the first access class file
 #define D7A_FILE_ACCESS_PROFILE_SIZE 65
+#define D7A_FILE_ACCESS_PROFILE_COUNT 15
 
 #define D7A_FILE_NWL_SECURITY		0x0D
 #define D7A_FILE_NWL_SECURITY_SIZE	5
@@ -69,28 +70,21 @@ typedef enum
 
 typedef struct
 {
-    uint8_t action_file_id;
-    union
-    {
-        uint8_t _flags;
-        struct
-        {
-            bool action_protocol_enabled : 1;
-            alp_act_condition_t action_condition : 3;
-            uint8_t _rfu : 2;
-            fs_storage_class_t storage_class : 2; // TODO
-        };
-        // TODO save to use bitfields here?
-    };
-    uint8_t permissions;
-} fs_file_properties_t;
+    fs_storage_class_t storage_class : 2;
+    uint8_t _rfu : 2;
+    alp_act_condition_t action_condition : 3;
+    bool action_protocol_enabled : 1;
+} __packed fs_file_properties_t;
 
 typedef struct
 {
+    uint8_t file_permissions; // TODO not used for now
     fs_file_properties_t file_properties;
+    uint8_t alp_cmd_file_id;
+    uint8_t interface_file_id;
     uint32_t length;
-    // TODO not used for now uint32_t allocated_length;
-} fs_file_header_t;
+    uint32_t allocated_length;
+} __packed fs_file_header_t;
 
 /**
  * \brief Initialize the user files in this callback.
@@ -112,7 +106,7 @@ typedef void (*fs_modified_file_callback_t)(uint8_t file_id);
  */
 typedef struct {
     fs_user_files_init_callback fs_user_files_init_cb; /**< Initialize the user files in this callback */
-    uint8_t access_profiles_count; /**< The number of access profiles used (and passed in the access_profiles member).  */
+    uint8_t access_profiles_count; /**< The number of access profiles passed in the access_profiles member.  */
     dae_access_profile_t* access_profiles; /**< The access profiles to be written to the filesystem (using increasing fileID starting from0x20) during init.  */    
     uint8_t access_class; /* The Active Access Class to be written in the DLL configuration file */
     uint8_t ssr_filter_mode; /* Initialise the SSR filter mode used to maintain the SSR */
@@ -125,6 +119,8 @@ alp_status_codes_t fs_read_file(uint8_t file_id, uint8_t offset, uint8_t* buffer
 alp_status_codes_t fs_write_file(uint8_t file_id, uint8_t offset, const uint8_t* buffer, uint8_t length);
 void fs_read_access_class(uint8_t access_class_index, dae_access_profile_t* access_class);
 void fs_write_access_class(uint8_t access_class_index, dae_access_profile_t* access_class);
+alp_status_codes_t fs_read_file_header(uint8_t file_id, fs_file_header_t* file_header);
+alp_status_codes_t fs_write_file_header(uint8_t file_id, fs_file_header_t* file_header);
 void fs_read_uid(uint8_t* buffer);
 void fs_read_vid(uint8_t* buffer);
 void fs_write_vid(uint8_t* buffer);

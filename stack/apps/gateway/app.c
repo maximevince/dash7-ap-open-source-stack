@@ -27,7 +27,7 @@
 #include "timer.h"
 #include "log.h"
 #include "debug.h"
-#include "platform.h"
+#include "platform_defs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,8 +37,9 @@
 #include "hwuart.h"
 #include "fifo.h"
 #include "version.h"
+#include "compress.h"
 
-#if HW_NUM_LEDS > 0
+#if PLATFORM_NUM_LEDS > 0
 #include "hwleds.h"
 
 void led_blink_off()
@@ -57,7 +58,7 @@ void led_blink()
 
 static void on_unsolicited_response_received(d7asp_result_t d7asp_result, uint8_t *alp_command, uint8_t alp_command_size)
 {
-#if HW_NUM_LEDS > 0
+#if PLATFORM_NUM_LEDS > 0
   led_blink();
 #endif
 }
@@ -67,8 +68,9 @@ static alp_init_args_t alp_init_args;
 
 void bootstrap()
 {
-    dae_access_profile_t access_profiles[6] = {
+    dae_access_profile_t access_profiles[2] = {
         {
+          // AC used for pushing data to the GW, continuous FG scan
             .channel_header = {
                 .ch_coding = PHY_CODING_PN9,
                 .ch_class = PHY_CLASS_NORMAL_RATE,
@@ -82,97 +84,26 @@ void bootstrap()
                 .channel_index_start = 0,
                 .channel_index_end = 0,
                 .eirp = 10,
-                .cca = -86,
+                .cca = 86,
                 .duty = 0,
             }
         },
         {
-            .channel_header = {
-                .ch_coding = PHY_CODING_PN9,
-                .ch_class = PHY_CLASS_HI_RATE,
-                .ch_freq_band = PHY_BAND_868
-            },
-            .subprofiles[0] = {
-                .subband_bitmap = 0x01, // only the first subband is selectable
-                .scan_automation_period = 0,
-            },
-            .subbands[0] = (subband_t){
-                .channel_index_start = 0,
-                .channel_index_end = 0,
-                .eirp = 10,
-                .cca = -86,
-                .duty = 0,
-            }
-        },
-        {
-            .channel_header = {
-                .ch_coding = PHY_CODING_PN9,
-                .ch_class = PHY_CLASS_LO_RATE,
-                .ch_freq_band = PHY_BAND_868
-            },
-            .subprofiles[0] = {
-                .subband_bitmap = 0x01, // only the first subband is selectable
-                .scan_automation_period = 0,
-            },
-            .subbands[0] = (subband_t){
-                .channel_index_start = 0,
-                .channel_index_end = 0,
-                .eirp = 10,
-                .cca = -86,
-                .duty = 0,
-            }
-        },
-        {
+            // AC used by sensors for scanning for BG request every second
             .channel_header = {
                 .ch_coding = PHY_CODING_PN9,
                 .ch_class = PHY_CLASS_NORMAL_RATE,
-                .ch_freq_band = PHY_BAND_433
+                .ch_freq_band = PHY_BAND_868
             },
             .subprofiles[0] = {
-                .subband_bitmap = 0x01, // only the first subband is selectable
-                .scan_automation_period = 0,
+              .subband_bitmap = 0x01,
+              .scan_automation_period = compress_data(1024, true),
             },
             .subbands[0] = (subband_t){
                 .channel_index_start = 0,
                 .channel_index_end = 0,
                 .eirp = 10,
-                .cca = -86,
-                .duty = 0,
-            }
-        },
-        {
-            .channel_header = {
-                .ch_coding = PHY_CODING_PN9,
-                .ch_class = PHY_CLASS_HI_RATE,
-                .ch_freq_band = PHY_BAND_433
-            },
-            .subprofiles[0] = {
-                .subband_bitmap = 0x01, // only the first subband is selectable
-                .scan_automation_period = 0,
-            },
-            .subbands[0] = (subband_t){
-                .channel_index_start = 0,
-                .channel_index_end = 0,
-                .eirp = 10,
-                .cca = -86,
-                .duty = 0,
-            }
-        },
-        {
-            .channel_header = {
-                .ch_coding = PHY_CODING_PN9,
-                .ch_class = PHY_CLASS_LO_RATE,
-                .ch_freq_band = PHY_BAND_433
-            },
-            .subprofiles[0] = {
-                .subband_bitmap = 0x01, // only the first subband is selectable
-                .scan_automation_period = 0,
-            },
-            .subbands[0] = (subband_t){
-                .channel_index_start = 0,
-                .channel_index_end = 0,
-                .eirp = 10,
-                .cca = -86,
+                .cca = 86,
                 .duty = 0,
             }
         }
@@ -192,7 +123,7 @@ void bootstrap()
     lcd_write_string("GW %s", _GIT_SHA1);
 #endif
 
-#if HW_NUM_LEDS > 0
+#if PLATFORM_NUM_LEDS > 0
     sched_register_task(&led_blink_off);
 #endif
 }

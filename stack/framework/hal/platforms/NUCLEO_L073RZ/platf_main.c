@@ -17,7 +17,6 @@
  */
 
 
-#include "stm32l0xx_mcu.h"
 #include "bootstrap.h"
 #include "hwgpio.h"
 #include "hwleds.h"
@@ -25,10 +24,10 @@
 #include "button.h"
 #include "stm32l0xx_gpio.h"
 #include "stm32l0xx_hal_gpio.h"
-#include "stm32l0xx_pins.h"
 #include "stm32l0xx_hal.h"
 #include "platform.h"
 #include "debug.h"
+#include "hwdebug.h"
 
 #if defined(USE_SX127X) && defined(PLATFORM_SX127X_USE_RESET_PIN)
 static void reset_sx127x()
@@ -45,6 +44,8 @@ void __platform_init()
 {
     __stm32l0xx_mcu_init();
     __gpio_init();
+    __hw_debug_init();
+
 #ifdef USE_SX127X
 
     // configure the interrupt pins here, since hw_gpio_configure_pin() is MCU

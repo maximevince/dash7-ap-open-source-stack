@@ -21,13 +21,11 @@
 #include "scheduler.h"
 #include "timer.h"
 #include "assert.h"
-#include "platform.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "hwlcd.h"
-#include "hwadc.h"
 #include "d7ap_stack.h"
 #include "fs.h"
 #include "log.h"
@@ -37,12 +35,8 @@
 
 
 #include "button.h"
-#if (defined PLATFORM_EFM32GG_STK3700 || defined PLATFORM_EFM32HG_STK3400 || defined PLATFORM_EZR32LG_WSTK6200A || defined PLATFORM_EZR32LG_OCTA)
+#if (defined PLATFORM_EFM32GG_STK3700 || defined PLATFORM_EZR32LG_WSTK6200A)
   #include "platform_sensors.h"
-#endif
-
-#ifdef PLATFORM_EZR32LG_OCTA
-#include "led.h"
 #endif
 
 #ifdef HAS_LCD
@@ -69,8 +63,8 @@
 
 void execute_sensor_measurement()
 {
-#if (defined PLATFORM_EFM32HG_STK3400  || defined PLATFORM_EZR32LG_WSTK6200A \
-  || defined PLATFORM_EZR32LG_OCTA || defined PLATFORM_EFM32GG_STK3700 || defined PLATFORM_EZR32LG_USB01)
+#if (defined PLATFORM_EZR32LG_WSTK6200A \
+  || defined PLATFORM_EFM32GG_STK3700 || defined PLATFORM_EZR32LG_USB01)
   char str[30];
 
   float internal_temp = hw_get_internal_temperature();
@@ -129,10 +123,10 @@ void init_user_files()
     // file 0x40: contains our sensor data + configure an action file to be executed upon write
     fs_file_header_t file_header = (fs_file_header_t){
         .file_properties.action_protocol_enabled = 1,
-        .file_properties.action_file_id = ACTION_FILE_ID,
         .file_properties.action_condition = ALP_ACT_COND_WRITE,
         .file_properties.storage_class = FS_STORAGE_VOLATILE,
-        .file_properties.permissions = 0, // TODO
+        .file_permissions = 0, // TODO
+        .alp_cmd_file_id = ACTION_FILE_ID,
         .length = SENSOR_FILE_SIZE
     };
 
@@ -194,7 +188,7 @@ void bootstrap()
                 .channel_index_start = 0,
                 .channel_index_end = 0,
                 .eirp = 10,
-                .cca = -86,
+                .cca = 86,
                 .duty = 0,
             }
         }
@@ -209,7 +203,7 @@ void bootstrap()
 
     d7ap_stack_init(&fs_init_args, NULL, false, NULL);
 
-#if (defined PLATFORM_EFM32GG_STK3700 || defined PLATFORM_EFM32HG_STK3400 || defined PLATFORM_EZR32LG_WSTK6200A || defined PLATFORM_EZR32LG_OCTA)
+#if (defined PLATFORM_EFM32GG_STK3700 || defined PLATFORM_EZR32LG_WSTK6200A)
     initSensors();
 #endif
 
@@ -218,4 +212,3 @@ void bootstrap()
 
     LCD_WRITE_STRING("EFM32 Sensor\n");
 }
-
