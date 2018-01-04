@@ -25,6 +25,8 @@
 #include "stm32l0xx_hal_conf.h"
 #include "debug.h"
 
+#include "timer.h"
+
 /**
   * @brief  System Clock Configuration
   *         The system Clock is configured as follow :
@@ -47,6 +49,7 @@ static void init_clock(void)
 
   /* Enable HSE Oscillator and Activate PLL with HSE as source */
   RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSEState            = RCC_HSE_OFF;
   RCC_OscInitStruct.HSIState            = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_ON;
@@ -78,3 +81,9 @@ void __stm32l0xx_mcu_init()
   HAL_Init();
   init_clock();
 }
+
+uint32_t HAL_GetTick(void)
+{
+	return timer_get_counter_value();
+}
+

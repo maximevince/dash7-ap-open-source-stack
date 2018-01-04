@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-
 #include "stm32l0xx_mcu.h"
 #include "bootstrap.h"
 #include "hwgpio.h"
@@ -26,8 +25,8 @@
 #include "stm32l0xx_gpio.h"
 #include "hwsystem.h"
 #include "debug.h"
-#include "stm32l0xx_pins.h"
 #include "stm32l0xx_hal.h"
+#include "hwdebug.h"
 
 #if defined(USE_SX127X) && defined(PLATFORM_SX127X_USE_RESET_PIN)
 static void reset_sx127x()
@@ -44,6 +43,7 @@ void __platform_init()
 {
     __stm32l0xx_mcu_init();
     __gpio_init();
+    __hw_debug_init();
 
 #ifdef USE_SX127X
     // configure the radio GPIO pins here, since hw_gpio_configure_pin() is MCU
@@ -63,10 +63,10 @@ void __platform_init()
     hw_gpio_configure_pin(SX127x_RESET_PIN, false, GPIO_MODE_OUTPUT_PP, 1);
     reset_sx127x();
 #endif
+#ifdef PLATFORM_SX127X_USE_VCC_TXCO
+    hw_gpio_configure_pin(SX127x_VCC_TXCO, false, GPIO_MODE_OUTPUT_PP, 1);
+    hw_gpio_set(SX127x_VCC_TXCO);
 #endif
-
-#if defined(USE_SX127X) && defined(PLATFORM_SX127X_USE_RESET_PIN)
-    reset_sx127x();
 #endif
 
     HAL_EnableDBGSleepMode(); // TODO impact on power?

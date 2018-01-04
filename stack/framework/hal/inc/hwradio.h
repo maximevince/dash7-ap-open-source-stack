@@ -35,6 +35,8 @@
 #include "errors.h"
 #include "hal_defs.h"
 #include "timer.h"
+#include "phy.h"
+#include "platform_defs.h"
 
 #define HW_RSSI_INVALID 0x7FFF
 
@@ -43,91 +45,6 @@
 #define BACKGROUND_FRAME_LENGTH 6
 #define BACKGROUND_DLL_HEADER_LENGTH 2
 
-/* \brief The channel bands and corresponding band indices as defined in D7A
- *
- */
-typedef enum
-{
-    PHY_BAND_433 = 0x02,
-    PHY_BAND_868 = 0x03,
-    PHY_BAND_915 = 0x04,
-} phy_channel_band_t;
-
-/* \brief The channel classes and corresponding indices as defined in D7A
- *
- */
-typedef enum
-{
-    PHY_CLASS_LO_RATE = 0x00, // 9.6 kbps
-#ifdef USE_SX127X
-    PHY_CLASS_LORA = 0x01, // LoRa SF9, BW 125, CR 4/5. Note this is _not_ part of D7A spec (for now), and subject to change (or removal)
-#endif
-    PHY_CLASS_NORMAL_RATE = 0x02, // 55.555 kbps
-    PHY_CLASS_HI_RATE = 0x03 // 166.667 kbps
-} phy_channel_class_t;
-
-/* \brief The coding schemes and corresponding indices as defined in D7A
- *
- */
-typedef enum
-{
-    PHY_CODING_PN9 = 0x00,
-    PHY_CODING_RFU = 0x01,
-    PHY_CODING_FEC_PN9 = 0x02
-} phy_coding_t;
-
-/* \brief The syncword classes as defined in D7AP
- *
- */
-typedef enum
-{
-    PHY_SYNCWORD_CLASS0 = 0x00,
-    PHY_SYNCWORD_CLASS1 = 0x01
-} phy_syncword_class_t;
-
-typedef enum
-{
-    PREAMBLE_LOW_RATE_CLASS = 4, //(4 bytes, 32 bits)
-    PREAMBLE_NORMAL_RATE_CLASS = 4, //(4 bytes, 32 bits)
-    PREAMBLE_HI_RATE_CLASS = 6, //(6 bytes, 48 bits)
-} phy_preamble_min_length_t;
-
-/* \brief The channel header as defined in D7AP
- */
-typedef struct
-{
-    phy_coding_t ch_coding: 2; 	/**< The 'coding' field in the channel header */
-    phy_channel_class_t ch_class: 2;  	/**< The 'class' field in the channel header */
-    phy_channel_band_t ch_freq_band: 3;	/**< The frequency 'band' field in the channel header */
-    uint8_t _rfu: 1;
-} phy_channel_header_t;
-
-/** \brief channel id used to identify the spectrum settings
- *
- * This struct adheres to the 'Channel ID' format the Dash7 PHY layer. (@17/03/2015)
- */
-typedef struct
-{
-    union
-    {
-        uint8_t channel_header_raw; 	/**< The raw (8-bit) channel header */
-        phy_channel_header_t channel_header; /**< The channel header */
-    };
-    uint16_t center_freq_index;		/**< The center frequency index of the channel id */
-} channel_id_t;
-
-/* \brief Utility function to check whether two channel_id_t are equal
- *
- * \param a	The first channel_id
- * \param b	The second channel_id
- * \return bool	true if the two channel_id are equal, false otherwise.
- */
-static inline bool hw_radio_channel_ids_equal(const channel_id_t* a, const channel_id_t* b)
-{
-    //return memcmp(a,b, sizeof(channel_id_t)) == 0; //not working since channel_id_t not packed
-	return (a->channel_header_raw == b->channel_header_raw) && (a->center_freq_index == b->center_freq_index);
-
-}
 
 /** \brief The type for the result of a 'hardware' crc check
  *
@@ -364,6 +281,12 @@ typedef void (*rssi_valid_callback_t)(int16_t cur_rssi);
  */
 __LINK_C error_t hw_radio_init(alloc_packet_callback_t p_alloc, release_packet_callback_t p_free);
 
+
+/** \brief Stop the radio driver, and free the hardware resources (SPI, GPIO interrupts, ...)
+ */
+__LINK_C void hw_radio_stop();
+
+
 /** \brief Set the radio in the IDLE mode.
  *
  * When the radio is IDLE, the tranceiver is disabled to reduce energy consumption. 
@@ -479,63 +402,24 @@ __LINK_C bool hw_radio_is_rx();
  * dropped. Once the packet has been sent, the radio switches back to IDLE mode , unless hw_radio_set_rx() is
  * called while the TX is still in progress.
  *
- * \param packet	A pointer to the start of the packet to be transmitted
+ * If the ETA parameter is set, the packet transmission requires a preliminary advertising period for ad-hoc
+ * synchronization with the responder. In this case the dll_header_bg_frame parameter shoud be not NULL.
  *
- * \param tx_callback	The tx_packet_callback_t function to call whenever a packet has been 
- *			sent by the radio. Please note that this function is called from an 
- *			*interrupt* context and therefore can only do minimal processing. If this
- *			parameter is 0x0, no callback will be made.
+ * \param packet                A pointer to the start of the Foreground frame to be transmitted
+ * \param tx_callback           The tx_packet_callback_t function to call whenever a packet has been
+ *                              sent by the radio. Please note that this function is called from an
+ *                              *interrupt* context and therefore can only do minimal processing. If this
+ *                              parameter is 0x0, no callback will be made.
+ * \param eta                   The Estimated Time of Arrival of the D7ANP Request (in Ti)
+ * \param dll_header_bg_frame   The background frame DLL header
  *
  * \return error_t	SUCCESS if the packet transmission has been successfully initiated.
- *			EINVAL if the tx_cfg parameter contains invalid settings
- *			EBUSY if another TX operation is already in progress
- *			ESIZE if the packet is either too long or too small
- *			EOFF if the radio has not yet been initialised
+ *          EINVAL if the tx_cfg parameter contains invalid settings
+ *          EBUSY if another TX operation is already in progress
+ *          ESIZE if the packet is either too long or too small
+ *          EOFF if the radio has not yet been initialised
  */
-__LINK_C error_t hw_radio_send_packet(hw_radio_packet_t* packet,
-                                      tx_packet_callback_t tx_callback);
-
-/** \brief Set the radio in Tx background mode
- *
- * \param packet       A pointer to the start of the background packet to be transmitted
- * \param eta          The Estimated Time of Arrival of the D7ANP Request (in Ti)
- * \param tx_duration  The duration for transmitting a single D7AAdvP frame
- *
- * \return error_t	SUCCESS if the Tx background mode has been successfully configured.
- *			EINVAL if the tx_cfg parameter contains invalid settings
- *			EBUSY if another TX operation is already in progress
- *			ESIZE if the packet is either too long or too small
- *			EOFF if the radio has not yet been initialised
- */
-__LINK_C error_t hw_radio_set_background(hw_radio_packet_t* packet,
-                                         uint16_t eta, uint16_t tx_duration);
-
-/** \brief Start a background frame flooding until expiration of the advertising period
- *
- * Each background frame contains the Estimated Time of Arrival of the D7ANP Request (ETA).
- * When no more advertising background frames can be fully transmitted before the start of D7ANP,
- * the last background frame is extended by padding preamble symbols after the end of the background
- * packet, in order to guarantee no silence period on the channel between D7AAdvP and D7ANP.
- *
- * The background frame flooding is always done *asynchronously*, that is:
- * the background frame flooding is not completed until the supplied tx_packet_callback_t
- * function is invoked by the radio driver.
- *
- *
- * \param tx_callback	The tx_packet_callback_t function to call whenever the advertising period is terminated
- *                      Please note that this function is called from an interrupt
- *                      context and therefore can only do minimal processing.
- *                      If this parameter is 0x0, no callback will be made.
- *
- * \return error_t	SUCCESS if the background advertising has been successfully initiated.
- *			EINVAL if the tx_cfg parameter contains invalid settings
- *			EBUSY if another TX operation is already in progress
- *			ESIZE if the packet is either too long or too small
- *			EOFF if the radio has not yet been initialised
- */
-
-__LINK_C error_t hw_radio_start_background_advertising(tx_packet_callback_t tx_callback);
-
+__LINK_C error_t hw_radio_send_packet(hw_radio_packet_t* packet, tx_packet_callback_t tx_callback, uint16_t eta, uint8_t dll_header_bg_frame[2]);
 
 /** \brief Start a background scan.
  *

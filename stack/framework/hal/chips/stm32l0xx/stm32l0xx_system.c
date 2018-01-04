@@ -35,13 +35,16 @@ void hw_enter_lowpower_mode(uint8_t mode)
     case 1:
       HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
       break;
+    case 2:
+      HAL_PWR_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+      break;
 
   }
 }
 
 uint64_t hw_get_unique_id()
 {
-  return (*((uint64_t *)(UID_BASE + 4U)) << 32) + *((uint64_t *)(UID_BASE + 8U));
+  return (*((uint64_t *)(UID_BASE + 0x04U)) << 32) + *((uint64_t *)(UID_BASE + 0x14U));
 }
 
 #pragma GCC push_options

@@ -28,6 +28,8 @@
 #include "stm32l0xx_hal.h"
 #include "debug.h"
 
+#define HWTIMER_NUM 1
+
 // TODO validate
 
  static timer_callback_t compare_f = 0x0;
@@ -72,6 +74,7 @@ error_t hw_timer_init(hwtimer_id_t timer_id, uint8_t frequency, timer_callback_t
   output_compare_config.OCMode = TIM_OCMODE_TIMING;
   assert(HAL_TIM_OC_ConfigChannel(&tim2, &output_compare_config, TIM_CHANNEL_1) == HAL_OK);
   HAL_TIM_Base_Init(&tim2);
+  __HAL_TIM_ENABLE_IT(&tim2, TIM_IT_UPDATE);
   __HAL_TIM_ENABLE(&tim2);
 
   // make sure we only get an update interrupt on overflow, and not on for instance reset of CC
@@ -124,7 +127,6 @@ error_t hw_timer_cancel(hwtimer_id_t timer_id)
     __HAL_TIM_DISABLE_IT(&tim2, TIM_IT_CC1);
     __HAL_TIM_CLEAR_FLAG(&tim2, TIM_IT_CC1);
     HAL_NVIC_ClearPendingIRQ(TIM2_IRQn);
-    HAL_NVIC_DisableIRQ(TIM2_IRQn);
  	end_atomic();
 }
 

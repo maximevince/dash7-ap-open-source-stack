@@ -59,7 +59,7 @@
 
 #define RSSI_OFFSET 64 // if this is changed also change radio register 0x20,0x4e
 
-#if DEBUG_PIN_NUM >= 2
+#if PLATFORM_NUM_DEBUGPINS >= 2
     #define DEBUG_TX_START() hw_debug_set(0);
     #define DEBUG_TX_END() hw_debug_clr(0);
     #define DEBUG_RX_START() hw_debug_set(1);
@@ -560,28 +560,10 @@ error_t hw_radio_start_background_scan(hw_rx_cfg_t const* rx_cfg, rx_packet_call
   // TODO implement this
 }
 
-error_t hw_radio_send_background_packet(hw_radio_packet_t* packet,
-                                        tx_packet_callback_t tx_callback,
-                                        uint16_t eta, uint16_t tx_duration)
+error_t hw_radio_send_packet(hw_radio_packet_t* packet, tx_packet_callback_t tx_cb, uint16_t eta, uint8_t dll_header_bg_frame[2])
 {
-  assert(false);
-  // TODO implement this
-}
+  assert(eta == 0); // advertising not implemented on si4460 for now
 
-error_t hw_radio_start_background_advertising(tx_packet_callback_t tx_callback)
-{
-  assert(false);
-  // TODO implement this
-}
-
-error_t hw_radio_set_background(hw_radio_packet_t* packet, uint16_t eta, uint16_t tx_duration)
-{
-  assert(false);
-  // TODO implement this
-}
-
-error_t hw_radio_send_packet(hw_radio_packet_t* packet, tx_packet_callback_t tx_cb)
-{
 	// TODO error handling EINVAL, ESIZE, EOFF
 	if(current_state == HW_RADIO_STATE_TX)
 		return EBUSY;
